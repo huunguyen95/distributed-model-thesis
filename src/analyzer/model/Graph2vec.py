@@ -10,7 +10,8 @@ from joblib import Parallel, delayed
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 
 
-INPUT_PATH = "./data/dataset/"
+#INPUT_PATH = "./data/dataset/"
+INPUT_PATH = "../server_data/test_data/"
 # OUTPUT_PATH = "./data/embeddings.csv"
 OUTPUT_PATH = "./data/embeddings_ae.csv"
 DIMENSIONS = 128
@@ -131,7 +132,7 @@ def Graph2vec():
     Learn the embedding and save it.
     :param args: Object with the arguments.
     """
-    graphs = glob.glob(os.path.join(INPUT_PATH, "*/*.adjlist"))
+    graphs = glob.glob(os.path.join(INPUT_PATH, "*.adjlist"))
 
     document_collections = Parallel(n_jobs=WORKERS)(
         delayed(feature_extractor)(g, WL_ITERATIONS) for g in tqdm(graphs))

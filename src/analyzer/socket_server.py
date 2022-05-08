@@ -8,7 +8,7 @@ PORT = 4456
 ADDR = (IP, PORT)
 SIZE = 4096
 FORMAT = "utf-8"
-SERVER_DATA_PATH = "server_data"
+SERVER_DATA_PATH = ["server_data/malware", "server_data/benign", "server_data/new_malware"]
 
 
 def handle_client(conn, addr):
@@ -16,9 +16,17 @@ def handle_client(conn, addr):
     conn.send("OK@Welcome to the File Server.".encode(FORMAT))
     name = conn.recv(SIZE).decode(FORMAT)
     print(f"[RECEIVING] {name}")
-    conn.send("[RECEIVED] FILE NAME".encode(FORMAT))
 
-    filepath = os.path.join(SERVER_DATA_PATH, name)
+    conn.send("[RECEIVED] FILE NAME".encode(FORMAT))
+    if "./client_data/scg/data/malware/" in name:
+        name = name.split("/")[-1]
+        filepath = os.path.join(SERVER_DATA_PATH[0], name)
+    elif "./client_data/scg/data/benign/" in name:
+        name = name.split("/")[-1]
+        filepath = os.path.join(SERVER_DATA_PATH[1], name)
+    else:
+        name = name.split("/")[-1]
+        filepath = os.path.join(SERVER_DATA_PATH[2], name)
     with open(filepath, "w") as f:
         while True:
             text = conn.recv(SIZE).decode(FORMAT)
