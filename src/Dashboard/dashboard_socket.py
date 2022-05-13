@@ -4,7 +4,7 @@ import threading
 
 
 IP = "192.168.2.20"
-PORT = 4456
+PORT = 4457
 ADDR = (IP, PORT)
 SIZE = 4096
 FORMAT = "utf-8"
@@ -13,9 +13,9 @@ RESULT_PATH = "predicted_result"
 
 def handle_client(conn, addr):
     print(f"[NEW CONNECTION] {addr} connected.")
-    conn.send("OK@Welcome to the dashboard Server.".encode(FORMAT))
+    #conn.send("OK@Welcome to the dashboard Server.".encode(FORMAT))
     name = conn.recv(SIZE).decode(FORMAT)
-    print(f"[RECEIVING] {name}")
+    #print(f"[RECEIVING] {name}")
 
     filepath = os.path.join(RESULT_PATH, name)
     with open(filepath, "w") as f:
