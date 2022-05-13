@@ -55,8 +55,8 @@ def monitor_system_status():
 def main():
     infor_thread = threading.Thread(target=run_period_info())
     infor_thread.start()
-    monitor_thread = threading.Thread(target=monitor_system_status())
-    monitor_thread.start()
+    #monitor_thread = threading.Thread(target=monitor_system_status())
+    #monitor_thread.start()
 
 
 ##notify jobs

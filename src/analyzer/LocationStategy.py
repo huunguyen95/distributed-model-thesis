@@ -128,7 +128,7 @@ class LocationStrategy:
         for each in self.candidates:
             try:
                 # logging.info(each[1][0])
-                current_latencee = ping(str(each[1][0]),timeout=2, count=4).rtt_avg_ms #currently  use private IP
+                current_latencee = ping(str(each[1][0]), timeout=2, count=4).rtt_avg_ms #currently  use private IP
                 logging.info("latency from  here to -> %r: %r" %
                              (each[1][0], current_latencee))
                 # logging.info(each[0])
@@ -159,20 +159,27 @@ class LocationStrategy:
             data = json.dumps(potential_latency_node).encode('utf-8')
             key = json.dumps("latency").encode('utf-8')
             self.kafkaProducer.send(self.topic, key=key, value=data)
+            self.kafkaProducer.flush()
+            self.kafkaProducer.close()
             logging.info(f"BEST LATENCY NODE: {potential_latency_node[0]}")
             return potential_latency_node
         elif mode == "cpu":
             data = json.dumps(potential_cpu_node).encode('utf-8')
             key = json.dumps("cpu_avgload").encode('utf-8')
             self.kafkaProducer.send(self.topic, key=key, value=data)
+            self.kafkaProducer.flush()
+            self.kafkaProducer.close()
             logging.info(f"BEST CPU NODE: {potential_cpu_node[0]}")
             return potential_cpu_node
         else:
             data = json.dumps(potential_ram_node).encode('utf-8')
             key = json.dumps("ram_cap").encode('utf-8')
             self.kafkaProducer.send(self.topic, key=key, value=data)
+            self.kafkaProducer.flush()
+            self.kafkaProducer.close()
             logging.info(f"BEST RAM NODE: {potential_ram_node[0]}")
             return potential_ram_node
+
 
     '''
         notify each others about possible candidates according to specified criteria

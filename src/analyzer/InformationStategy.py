@@ -88,6 +88,8 @@ class InformationStrategy:
         producer = KafkaProducer(
             bootstrap_servers=self.kafka_ip+':'+self.kafka_port)
         producer.send(topic, data)
+        producer.flush()
+        producer.close()
 
     def do_monitor_system_resource_and_publish_to_kafka(self):
         system_metrics = {'mac_addr': self.get_mac_addr(), 'hostname': self.get_hostname(),

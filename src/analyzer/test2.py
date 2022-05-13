@@ -47,40 +47,19 @@ def monitor_consumer():
 
 
 def main():
-    #newthread = threading.Thread(target=monitor_consumer())
-    #newthread.start()
-    path = "./server_data/malware/176fc651843f3391f1d21ba9b4a77d77ce5eaeb72f8a4275e3d1f3048a19765b.adjlist"
-    with open(path, "r") as f:
-        data = f.read()
-    f.close()
-    a = path.split("/")[-1]
-    logging.info(a)
+    newthread = threading.Thread(target=monitor_consumer())
+    newthread.start()
+    #path = "./server_data/malware/176fc651843f3391f1d21ba9b4a77d77ce5eaeb72f8a4275e3d1f3048a19765b.adjlist"
+    #with open(path, "r") as f:
+    #    data = f.read()
+    #f.close()
+    #a = path.split("/")[-1]
+    #logging.info(a)
     #logging.info(data)
-    kafka_pubnish_data(data_key=a.encode('utf-8'), data_value=data.encode('utf-8'))
+    #kafka_pubnish_data(data_key=a.encode('utf-8'), data_value=data.encode('utf-8'))
 
 
 if __name__ == "__main__":
     main()
 
-"""
-client = KSQLAPI('http://localhost:8088')
-stream = client.ksql('''drop stream if exists information_strategy_center_server;
-                    create stream if not exists information_strategy_center_server (
-                            src_server_private_ip varchar,
-                            mac_addr varchar,
-                            hostname varchar,
-                            cpu_percent double,
-                            mem_used int,
-                            network_latency double,
-                            system_status varchar)
-                        with (kafka_topic='information-strategy-center-server',format='json')
-                    ''')
 
-query_for_is = "select * from information_strategy_center_server emit changes limit " + \
-               str(5)
-query = client.query(query_for_is)
-
-for records in query:
-    logging.info(records)
-#
-"""
