@@ -7,9 +7,9 @@ PORT = 4456
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 4096
-dataset = ["./client_data/scg/data/malware/", "./client_data/scg/data/benign/", "./client_data/scg/data/new_malware/"]
+#dataset = ["./client_data/scg/data/malware/", "./client_data/scg/data/benign/", "./client_data/scg/data/new_malware/"]
 #client_data = "./client_data/scg/data/malware/"
-
+dataset = ["./client_data/scg/data/malware/"]
 
 def main():
     for client_data in dataset:

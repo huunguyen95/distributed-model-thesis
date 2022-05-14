@@ -5,9 +5,8 @@ from contextlib import suppress
 from operator import itemgetter
 from kafka import KafkaProducer
 from time import sleep
-from os import getenv
-from tcp_latency import measure_latency
-from random import randint
+import os
+from dotenv import load_dotenv
 from pythonping import ping
 
 import logging
@@ -15,14 +14,15 @@ import coloredlogs
 import json
 import socket
 coloredlogs.install()
+load_dotenv(dotenv_path=".env")
 
 
 # CONSTANTs
-CENTER_SERVER_CONFLUENT_CONN_STRING = "http://192.168.2.10:8088"
+CENTER_SERVER_CONFLUENT_CONN_STRING = os.environ.get("CENTER_SERVER_CONFLUENT_CONN_STRING")
 ##
-KAFKA_SERVER = '192.168.1.60'
-KAFKA_PORT = '9092'
-TOPIC = 'location-strategy-center-server'
+KAFKA_SERVER = os.environ.get("KAFKA_SERVER")
+KAFKA_PORT = os.environ.get("KAFKA_PORT")
+TOPIC = os.environ.get("TOPIC_LOCATION_STRATEGY")
 ##
 '''
     select the available node to offload:
@@ -115,7 +115,7 @@ class LocationStrategy:
                                 cpu_avg_load,  # 2
                                 ram_cap,  # 3
                                 net_latency,  # 4,
-                                system_state #5
+                                system_state
                             )])
         except RuntimeError:
             logging.error("done querying stream KSQL")
@@ -151,10 +151,13 @@ class LocationStrategy:
         for each_candidates in self.query_candidates_with_low_latency(preferred_latency=10, num_of_publishing_nodes=5):
             if each_candidates[1][4] <= min_latency:
                 potential_latency_node = each_candidates
+                min_latency = each_candidates[1][4]
             if each_candidates[1][3] <= min_used_ram:
                 potential_ram_node = each_candidates
+                min_used_ram = each_candidates[1][3]
             if each_candidates[1][2] <= min_load_cpu:
                 potential_cpu_node = each_candidates
+                min_load_cpu = each_candidates[1][2]
         if mode == "latency":
             data = json.dumps(potential_latency_node).encode('utf-8')
             key = json.dumps("latency").encode('utf-8')
@@ -185,38 +188,3 @@ class LocationStrategy:
         notify each others about possible candidates according to specified criteria
     '''
 
-'''
-def main():
-
-    logging.info(CENTER_SERVER_CONFLUENT_CONN_STRING)
-    locationStrategy = LocationStrategy(CENTER_SERVER_CONFLUENT_CONN_STRING)
-    logging.info(locationStrategy)
-    locationStrategy.create_ksql_stream()
-    # locationStrategy.get_all_possible_candidates()
-
-    while True:
-        locationStrategy.query_candidates_with_low_latency()
-        locationStrategy.select_candidates_by_ram_cap()
-        locationStrategy.select_candidates_by_cpu_avg()
-        # logging.info("wow i  found the most compatible node with lowest latency\n... %r"%(locationStrategy.select_the_lowest_latency()))
-        # logging.info("otherwise we have the RAM maniac: %r"%(locationStrategy.select_candidates_by_ram_cap()))
-        # logging.info("otherwise we have the CPU maniac: %r"%(locationStrategy.select_candidates_by_cpu_avg()))
-        # print("final candidates list: ",locationStrategy.lowestLatencyCandidates)
-        # locationStrategy.publish_lowest_latency_candidates_to_kafka()
-        # locationStrategy.publish_lowest_CPU_avgload_candidates_to_kafka()
-        # locationStrategy.publish_highest_RAM_cap_candidates_to_kafka()
-        # print("done publish to kafka...")
-
-        the_chosen_one = locationStrategy.select_candidates_to_offload(selection_criteria="latency")
-        # print(the_chosen_one)
-        logging.info("I am the chosen one %r" % the_chosen_one)
-        # sleep(1)
-        # print(chr(27)+'[2j')
-        # print('\033c')
-        # print('\x1bc')
-        # sleep(0.25)
-
-
-if __name__ == "__main__":
-    main()
-'''

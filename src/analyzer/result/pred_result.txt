@@ -1,0 +1,15 @@
+NB
+b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+======================
+DT
+b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+======================
+KNN
+b5e415ad3d0b0eb402824a1108f02ac6.adjlist: benign
+======================
+SVM
+b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+======================
+RF
+b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+======================
