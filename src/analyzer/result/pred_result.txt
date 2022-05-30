@@ -1,15 +1,15 @@
 NB
-b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+4e26aec9d28d682dec30a2ba740f0342.adjlist: malware
 ======================
 DT
-b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+4e26aec9d28d682dec30a2ba740f0342.adjlist: benign
 ======================
 KNN
-b5e415ad3d0b0eb402824a1108f02ac6.adjlist: benign
+4e26aec9d28d682dec30a2ba740f0342.adjlist: malware
 ======================
 SVM
-b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+4e26aec9d28d682dec30a2ba740f0342.adjlist: malware
 ======================
 RF
-b5e415ad3d0b0eb402824a1108f02ac6.adjlist: malware
+4e26aec9d28d682dec30a2ba740f0342.adjlist: malware
 ======================

@@ -12,6 +12,7 @@ from TransferStategy import TransferStrategy
 from LocationStategy import LocationStrategy
 from InformationStategy import InformationStrategy
 from dotenv import load_dotenv
+from concurrent.futures import ThreadPoolExecutor
 
 coloredlogs.install()
 load_dotenv(dotenv_path=".env")
@@ -29,9 +30,10 @@ DASHBOARD_PORT = os.environ.get("DASHBOARD_PORT")
 
 transfer = TransferStrategy()
 location = LocationStrategy()
+location.create_ksql_stream()
 info = InformationStrategy()
 
-IP = "192.168.2.10"
+IP = "192.168.2.9"
 PORT = 4456
 ADDR = (IP, PORT)
 size = 4096
@@ -46,13 +48,44 @@ q_tasks = queue.Queue()
 
 
 def active_socket_server():
+    location.create_ksql_stream()
+    #executor = ThreadPoolExecutor(1)
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(target=handle_client, args=(conn, addr))
-        thread.start()
+        #thread = threading.Thread(target=handle_client, args=(conn, addr))
+        #thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
-        if q_tasks.qsize() != 0:
-            handle_data(q_tasks.get())
+        conn.send("OK@Welcome to the File Server.".encode(format_encode))
+        name = conn.recv(size).decode(format_encode)
+        print(f"[RECEIVING] {name}")
+
+        conn.send("[RECEIVED] FILE NAME".encode(format_encode))
+        name = name.split("/")[-1]
+        filepath = os.path.join(server_data_path, name)
+        #os.system("rm -rf ./server_data/local/*")
+        with open(filepath, "w") as f:
+            while True:
+                text = conn.recv(size).decode(format_encode)
+                # print(text)
+                f.write(text)
+                if not text:
+                    break
+        f.close()
+        # self.task_state = True
+        ##add filename into queue
+        q_tasks.put(filepath)
+        logging.info(filepath)
+        print(q_tasks.qsize())
+        #thread = threading.Thread(target=handle_data(filepath)) #, args=(f"{filepath}"))
+        #thread.start()
+        #executor.submit(handle_data, (filepath))
+        print(f"[DISCONNECTED] {addr} disconnected")
+        conn.close()
+        logging.warning(f"===========================================1[STARTING TIMER][TASK] {name}\n")
+
+
+        #if q_tasks.qsize() != 0:
+        #    handle_data(q_tasks.get())
 
 
 def handle_client(conn, addr):
@@ -90,11 +123,12 @@ def handle_data(filepath):
     name = filepath.split("/")[-1]
     key_info = src_ip+":"+name
     ##Check system state overload or not
-    if cpu_percent() > 90 and virtual_memory()[2] > 90:
+    if cpu_percent() > 101.0 and virtual_memory()[2] > 90.0:
         logging.warning("=================SYSTEM OVERLOAD AND REQUEST SUPPORT==================")
-        location.create_ksql_stream()
-        location.query_candidates_with_low_latency()
-        choosen_node = location.select_the_best()[1][0]
+        #location.create_ksql_stream()
+        #location.query_candidates_with_low_latency()
+        #choosen_node = location.select_the_best()[1][0]
+        choosen_node = "192.168.2.8"
         transfer.kafka_publish_data(kafka_broker_ip=choosen_node,
                                     kafka_port=KAFKA_PORT,
                                     data_key=key_info,
@@ -108,15 +142,37 @@ def handle_data(filepath):
         #time.sleep(5)
         os.system("python3.8 ./defensive_model.py")
         #time.sleep(5)
-        logging.info("DONE TASK %s" % name)
+        #logging.info("DONE TASK %s" % name)
         with open("./result/pred_result.txt", "r") as f:
             pred_result = f.read()
         f.close()
-        transfer.kafka_publish_data(topic=OFFLOAD_RESULT_TOPIC, data_key=name, data_value=pred_result)
+        transfer.kafka_publish_data(kafka_broker_ip="192.168.2.9", topic=OFFLOAD_RESULT_TOPIC, data_key=name, data_value=pred_result)
+        transfer.kafka_publish_data(kafka_broker_ip="192.168.2.10", topic=OFFLOAD_RESULT_TOPIC, data_key=name, data_value=pred_result)
+        logging.info("====================================================2[END TIMER][DONE TASK] %s" % name)
+
+
+
+def while_():
+    while True:
+        #logging.info(f"=============={q_tasks.qsize()}=============")
+        if q_tasks.qsize() > 0:
+            file_path = q_tasks.get()
+            print(file_path)
+            print(q_tasks.qsize())
+            handle_data(file_path)
+
 
 
 def main():
+    executor = ThreadPoolExecutor(1)
+    executor.submit(while_)
     active_socket_server()
+#    while True:
+#        logging.info(f"=============={q_tasks.qsize()}=============")
+#        if q_tasks.qsize() > 0:
+#            file_path = q_tasks.get()
+#            executor.submit(handle_data, (file_path))
+#            #handle_data(file_path)
 
 
 if __name__ == "__main__":

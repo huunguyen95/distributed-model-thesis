@@ -8,7 +8,7 @@ from time import sleep
 import os
 from dotenv import load_dotenv
 from pythonping import ping
-
+from InformationStategy import InformationStrategy
 import logging
 import coloredlogs
 import json
@@ -31,7 +31,7 @@ TOPIC = os.environ.get("TOPIC_LOCATION_STRATEGY")
         - publish some info to kafka
 
 '''
-
+info = InformationStrategy()
 
 class LocationStrategy:
     def __init__(self,
@@ -55,9 +55,7 @@ class LocationStrategy:
 
     def create_ksql_stream(self):
         try:
-            create_stream = self.ksqlClient.ksql('''
-                                        drop stream if exists information_strategy_center_server;
-                                        create stream if not exists information_strategy_center_server (
+            create_stream = self.ksqlClient.ksql('''create stream if not exists information_strategy_center_server (
                                             src_server_private_ip varchar,
                                             mac_addr varchar,
                                             hostname varchar,
@@ -149,15 +147,16 @@ class LocationStrategy:
         potential_ram_node = []
         potential_cpu_node = []
         for each_candidates in self.query_candidates_with_low_latency(preferred_latency=10, num_of_publishing_nodes=5):
-            if each_candidates[1][4] <= min_latency:
-                potential_latency_node = each_candidates
-                min_latency = each_candidates[1][4]
-            if each_candidates[1][3] <= min_used_ram:
-                potential_ram_node = each_candidates
-                min_used_ram = each_candidates[1][3]
-            if each_candidates[1][2] <= min_load_cpu:
-                potential_cpu_node = each_candidates
-                min_load_cpu = each_candidates[1][2]
+            if str(each_candidates[1][0]) != info.get_private_ip():
+                if each_candidates[1][4] <= min_latency:
+                    potential_latency_node = each_candidates
+                    min_latency = each_candidates[1][4]
+                if each_candidates[1][3] <= min_used_ram:
+                    potential_ram_node = each_candidates
+                    min_used_ram = each_candidates[1][3]
+                if each_candidates[1][2] <= min_load_cpu:
+                    potential_cpu_node = each_candidates
+                    min_load_cpu = each_candidates[1][2]
         if mode == "latency":
             data = json.dumps(potential_latency_node).encode('utf-8')
             key = json.dumps("latency").encode('utf-8')

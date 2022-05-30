@@ -2,14 +2,14 @@ import socket
 import os
 
 # IP = socket.gethostbyname(socket.gethostname())
-IP = "192.168.2.10"
+IP = "192.168.2.9"
 PORT = 4456
 ADDR = (IP, PORT)
 FORMAT = "utf-8"
 SIZE = 4096
 #dataset = ["./client_data/scg/data/malware/", "./client_data/scg/data/benign/", "./client_data/scg/data/new_malware/"]
 #client_data = "./client_data/scg/data/malware/"
-dataset = ["./client_data/scg/data/malware/"]
+dataset = ["./client_data/test/"]
 
 def main():
     for client_data in dataset:

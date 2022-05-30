@@ -34,8 +34,8 @@ class InformationStrategy:
                  dst_server=KAFKA_SERVER,
                  dst_port=KAFKA_PORT,
                  topic=TOPIC,
-                 cpu_threshold=90,
-                 ram_threshold=90):
+                 cpu_threshold=90.0,
+                 ram_threshold=90.0):
 
         super().__init__()
         logging.info(dst_server)
@@ -89,6 +89,9 @@ class InformationStrategy:
     def publish_node_info_to_broker(self, topic, data=None):
         producer = KafkaProducer(
             bootstrap_servers=self.kafka_ip + ':' + self.kafka_port)
+        logging.info("=============SEND DATA INTO CENTER SERVER========")
+        logging.info(f"{self.kafka_ip}:{self.kafka_port}")
+        logging.info(f"{topic}")
         producer.send(topic, data)
         producer.flush()
         producer.close()
@@ -100,10 +103,12 @@ class InformationStrategy:
                 ip=self.kafka_ip,
             )}
         # only available RAM
-        if system_metrics['cpu_percent'] < self.cpu_th or system_metrics['mem_used'] < self.ram_th:
-            self.system_status = "OK"
-        else:
+        if cpu_percent() > self.cpu_th or virtual_memory()[2] > self.ram_th:
             self.system_status = "NOK"
+            logging.info("===========SYSTEM OVERLOAD=======")
+        else:
+            self.system_status = "OK"
+            logging.warning("==========SYSTEM UNDERLOAD=======")
         system_metrics['system_status'] = self.system_status
         # PUBLISH TO BROKER for each 5 secs
         logging.info("publishing to kafka broker: ")
@@ -118,7 +123,7 @@ def main():
     info = InformationStrategy(src_server=gethostname())
     while True:
         info.do_monitor_system_resource_and_publish_to_kafka()
-        sleep(5)
+        sleep(0.05)
 
 
 if __name__ == "__main__":
