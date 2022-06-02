@@ -13,3 +13,35 @@ This is repository for my master's thesis about dynamic distributed-system using
 - At dashboard: /src/dashboard
 - Input: /input
 - output: /output
+
+#SYSTEM INFO:
+- Center-server:
+Cpu 16
+Ram 32
+Storage 100
+- Analyzer:
+Cpu2
+Ram 6
+Storage 30
+- Agent:
+Cpu 1
+Ram 2
+Storage 30
+
+#NETWORK
+- PING OPEN
+- INTERNAL NETWORK CONNECTION
+
+
+#RUN Code
+1. Change permission for all folder
+chown -R [user][user_group] folder
+2. Change permission for ssh key file
+chmod 400 [ssh_key]
+3. Modify environment
+vim .env
+4. Run at ground InformationStrategy
+nohup python3 InformationStrategy.py &
+5. Run TransferStategy
+faust -A data_process_app worker -l info
+6. Run socket_server

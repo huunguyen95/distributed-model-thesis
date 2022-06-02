@@ -8,7 +8,6 @@ from time import sleep
 import os
 from dotenv import load_dotenv
 from pythonping import ping
-from InformationStategy import InformationStrategy
 import logging
 import coloredlogs
 import json
@@ -23,6 +22,7 @@ CENTER_SERVER_CONFLUENT_CONN_STRING = os.environ.get("CENTER_SERVER_CONFLUENT_CO
 KAFKA_SERVER = os.environ.get("KAFKA_SERVER")
 KAFKA_PORT = os.environ.get("KAFKA_PORT")
 TOPIC = os.environ.get("TOPIC_LOCATION_STRATEGY")
+IP = os.environ.get(socket.gethostname())
 ##
 '''
     select the available node to offload:
@@ -31,7 +31,7 @@ TOPIC = os.environ.get("TOPIC_LOCATION_STRATEGY")
         - publish some info to kafka
 
 '''
-info = InformationStrategy()
+
 
 class LocationStrategy:
     def __init__(self,
@@ -80,7 +80,7 @@ class LocationStrategy:
         TODO: query for the number of nodes that currently publishing to information strategy topic then adjust the emitting changes in the stream
     '''
 
-    def query_candidates_with_low_latency(self, preferred_latency=10, num_of_publishing_nodes=5):
+    def query_candidates_with_low_latency(self, preferred_latency=10, num_of_publishing_nodes=10):
         # reset candidates list
         self.lowestLatencyCandidates = []
         self.candidates = []
@@ -146,8 +146,9 @@ class LocationStrategy:
         potential_latency_node = []
         potential_ram_node = []
         potential_cpu_node = []
-        for each_candidates in self.query_candidates_with_low_latency(preferred_latency=10, num_of_publishing_nodes=5):
-            if str(each_candidates[1][0]) != info.get_private_ip():
+        local_node = []
+        for each_candidates in self.query_candidates_with_low_latency(preferred_latency=10, num_of_publishing_nodes=10):
+            if str(each_candidates[1][0]) != IP:
                 if each_candidates[1][4] <= min_latency:
                     potential_latency_node = each_candidates
                     min_latency = each_candidates[1][4]
@@ -157,28 +158,21 @@ class LocationStrategy:
                 if each_candidates[1][2] <= min_load_cpu:
                     potential_cpu_node = each_candidates
                     min_load_cpu = each_candidates[1][2]
+            else:
+                local_node = each_candidates
+        if not potential_cpu_node:
+            potential_cpu_node = local_node
+        if not potential_ram_node:
+            potential_ram_node = local_node
+        if not potential_latency_node:
+            potential_latency_node = local_node
         if mode == "latency":
-            data = json.dumps(potential_latency_node).encode('utf-8')
-            key = json.dumps("latency").encode('utf-8')
-            self.kafkaProducer.send(self.topic, key=key, value=data)
-            self.kafkaProducer.flush()
-            self.kafkaProducer.close()
             logging.info(f"BEST LATENCY NODE: {potential_latency_node[0]}")
             return potential_latency_node
         elif mode == "cpu":
-            data = json.dumps(potential_cpu_node).encode('utf-8')
-            key = json.dumps("cpu_avgload").encode('utf-8')
-            self.kafkaProducer.send(self.topic, key=key, value=data)
-            self.kafkaProducer.flush()
-            self.kafkaProducer.close()
             logging.info(f"BEST CPU NODE: {potential_cpu_node[0]}")
             return potential_cpu_node
         else:
-            data = json.dumps(potential_ram_node).encode('utf-8')
-            key = json.dumps("ram_cap").encode('utf-8')
-            self.kafkaProducer.send(self.topic, key=key, value=data)
-            self.kafkaProducer.flush()
-            self.kafkaProducer.close()
             logging.info(f"BEST RAM NODE: {potential_ram_node[0]}")
             return potential_ram_node
 

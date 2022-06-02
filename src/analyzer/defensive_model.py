@@ -10,6 +10,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+import json
 
 SEED = 42
 DATA_PATH = "./data/embeddings_ae.csv"
@@ -21,6 +22,7 @@ REPORT_PATH = "./result/defensive_model.txt"
 data = pd.read_csv(DATA_PATH)
 X, y, X_new, X_ae, n = [], [], [], [], []
 X_result, y_result = [], []
+print_re = {}
 for row in data.values:
     #X.append(row[1:])
     #y.append(0)
@@ -81,8 +83,10 @@ hyperparam = [
     {"criterion": ["gini", "entropy"], "max_features": ["auto", "sqrt", "log2"], "n_estimators": [5, 10, 20, 50, 100, 200]},
 ]
 
-if os.path.exists("result/pred_result.txt"):
-    os.remove("result/pred_result.txt")
+if os.path.exists("result/pred_result.json"):
+    os.remove("result/pred_result.json")
+
+
 for (name, est), hyper in zip(classifiers.items(), hyperparam):
     clf = GridSearchCV(est, hyper, cv=5, n_jobs=-1)
     ###load model from file
@@ -93,26 +97,28 @@ for (name, est), hyper in zip(classifiers.items(), hyperparam):
     y_result = clf.predict(X)
     print(y_result)
     #print(len(y_result))
-    with open("./result/pred_result.txt", 'a') as f:
-        f.write(f"{name}\n")
-        # for i in range(len(n)):
-        if y_result[0] == 0:
-            f.write(n[0] + ": benign\n")
-        else:
-            f.write(n[0] + ": malware\n")
+    print_re["filename"] = n[0]
+    if y_result[-1] == 0:
+        pre_re = "benign"
+    else:
+        pre_re = "malware"
+    print_re[name] = pre_re
 
 
-        #f.write(f"{y_pred}\n")
-        f.write('=' * 22 + '\n')
-    #y_pred_new = clf.predict(X_new)
-    '''
+pre_result = json.dumps(print_re)
+with open("./result/pred_result.json", 'w') as f:
+    json.dump(pre_result, f)
+f.close()
+
+
+'''
     y_prob = clf.predict_proba(X_test)
     y_pred = clf.predict(X_test)
     y_pred_new = clf.predict(X_new)
-    '''
+    
     #dump(clf, f"model/defensive/{name}.joblib")
     #print(X, y_pred)
-    '''
+    
     with open(REPORT_PATH, 'a') as f:
 
         clf_rp = metrics.classification_report(y_test, y_pred, digits=4)

@@ -2,17 +2,17 @@ import os
 import shutil
 import socket
 import threading
-import queue
 import time
-
-from psutil import cpu_percent, virtual_memory
+from confluent_kafka import Producer
+import json
+import time
 import logging
 import coloredlogs
 from TransferStategy import TransferStrategy
 from LocationStategy import LocationStrategy
 from InformationStategy import InformationStrategy
 from dotenv import load_dotenv
-from concurrent.futures import ThreadPoolExecutor
+
 
 coloredlogs.install()
 load_dotenv(dotenv_path=".env")
@@ -27,13 +27,14 @@ OFFLOAD_RESULT_TOPIC = os.environ.get("TOPIC_OFF_LOAD_result")
 KAFKA_PORT = os.environ.get("KAFKA_PORT")
 DASHBOARD = os.environ.get("DASHBOARD")
 DASHBOARD_PORT = os.environ.get("DASHBOARD_PORT")
+LOCAL_TASK = os.environ.get("TOPIC_LOCAL_TASK")
 
 transfer = TransferStrategy()
 location = LocationStrategy()
 location.create_ksql_stream()
 info = InformationStrategy()
 
-IP = "192.168.2.9"
+IP = os.environ.get(socket.gethostname())
 PORT = 4456
 ADDR = (IP, PORT)
 size = 4096
@@ -44,16 +45,27 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 server.listen()
 print(f"[LISTENING] Server is listening on {IP}:{PORT}.")
-q_tasks = queue.Queue()
+local_bootstrap_server = IP+":9092"
+
+
+def kafka_producer(bootstrap_servers=local_bootstrap_server, topic=LOCAL_TASK, record_key=IP, new_message=None):
+    #bootstrap_servers = "192.168.2.10:9092"
+    #topic = "local_task"
+    p = Producer({'bootstrap.servers': bootstrap_servers})
+    #record_key = "192.168.2.9"
+    record_value = json.dumps(new_message)
+    p.produce(topic, key=record_key, value=record_value)
+    p.poll(0)
+    p.flush()
 
 
 def active_socket_server():
     location.create_ksql_stream()
-    #executor = ThreadPoolExecutor(1)
+    # executor = ThreadPoolExecutor(1)
     while True:
         conn, addr = server.accept()
-        #thread = threading.Thread(target=handle_client, args=(conn, addr))
-        #thread.start()
+        # thread = threading.Thread(target=handle_client, args=(conn, addr))
+        # thread.start()
         print(f"[ACTIVE CONNECTIONS] {threading.active_count() - 1}")
         conn.send("OK@Welcome to the File Server.".encode(format_encode))
         name = conn.recv(size).decode(format_encode)
@@ -62,7 +74,7 @@ def active_socket_server():
         conn.send("[RECEIVED] FILE NAME".encode(format_encode))
         name = name.split("/")[-1]
         filepath = os.path.join(server_data_path, name)
-        #os.system("rm -rf ./server_data/local/*")
+        # os.system("rm -rf ./server_data/local/*")
         with open(filepath, "w") as f:
             while True:
                 text = conn.recv(size).decode(format_encode)
@@ -71,108 +83,20 @@ def active_socket_server():
                 if not text:
                     break
         f.close()
-        # self.task_state = True
-        ##add filename into queue
-        q_tasks.put(filepath)
+        ##########=============Producer=============
+        new_message = {"IP": IP, "timestamp": time.time(),
+                       "filename": name,
+                       "filepath": filepath}
+        kafka_producer(local_bootstrap_server, LOCAL_TASK, IP, new_message)
+        ############################
         logging.info(filepath)
-        print(q_tasks.qsize())
-        #thread = threading.Thread(target=handle_data(filepath)) #, args=(f"{filepath}"))
-        #thread.start()
-        #executor.submit(handle_data, (filepath))
         print(f"[DISCONNECTED] {addr} disconnected")
         conn.close()
         logging.warning(f"===========================================1[STARTING TIMER][TASK] {name}\n")
 
 
-        #if q_tasks.qsize() != 0:
-        #    handle_data(q_tasks.get())
-
-
-def handle_client(conn, addr):
-    while True:
-        print(f"[NEW CONNECTION] {addr} connected.")
-        conn.send("OK@Welcome to the File Server.".encode(format_encode))
-        name = conn.recv(size).decode(format_encode)
-        print(f"[RECEIVING] {name}")
-
-        conn.send("[RECEIVED] FILE NAME".encode(format_encode))
-        name = name.split("/")[-1]
-        filepath = os.path.join(server_data_path, name)
-        #os.system("rm -rf ./server_data/local/*")
-        with open(filepath, "w") as f:
-            while True:
-                text = conn.recv(size).decode(format_encode)
-                # print(text)
-                f.write(text)
-                if not text:
-                    break
-        f.close()
-        # self.task_state = True
-        ##add filename into queue
-        q_tasks.put(filepath)
-        print(f"[DISCONNECTED] {addr} disconnected")
-        conn.close()
-        #print(f"[TASK] {name}\n")
-
-
-def handle_data(filepath):
-    with open(filepath, "r") as f:
-        data = f.read()
-    f.close()
-    src_ip = info.get_private_ip()
-    name = filepath.split("/")[-1]
-    key_info = src_ip+":"+name
-    ##Check system state overload or not
-    if cpu_percent() > 101.0 and virtual_memory()[2] > 90.0:
-        logging.warning("=================SYSTEM OVERLOAD AND REQUEST SUPPORT==================")
-        #location.create_ksql_stream()
-        #location.query_candidates_with_low_latency()
-        #choosen_node = location.select_the_best()[1][0]
-        choosen_node = "192.168.2.8"
-        transfer.kafka_publish_data(kafka_broker_ip=choosen_node,
-                                    kafka_port=KAFKA_PORT,
-                                    data_key=key_info,
-                                    data_value=data)
-        logging.info("HANDLING FILE %s with node: %s" % (q_tasks.get(), choosen_node))
-    else:
-        logging.info("=============SYSTEM UNDERLOAD AND HANDLE REQUEST BY ITS SELF============")
-        os.system("rm -rf ./server_data/test_dataset/test_tasks/*")
-        shutil.copyfile(filepath, f"./server_data/test_dataset/test_tasks/{name}")
-        os.system("python3.8 ./Graph2vec.py")
-        #time.sleep(5)
-        os.system("python3.8 ./defensive_model.py")
-        #time.sleep(5)
-        #logging.info("DONE TASK %s" % name)
-        with open("./result/pred_result.txt", "r") as f:
-            pred_result = f.read()
-        f.close()
-        transfer.kafka_publish_data(kafka_broker_ip="192.168.2.9", topic=OFFLOAD_RESULT_TOPIC, data_key=name, data_value=pred_result)
-        transfer.kafka_publish_data(kafka_broker_ip="192.168.2.10", topic=OFFLOAD_RESULT_TOPIC, data_key=name, data_value=pred_result)
-        logging.info("====================================================2[END TIMER][DONE TASK] %s" % name)
-
-
-
-def while_():
-    while True:
-        #logging.info(f"=============={q_tasks.qsize()}=============")
-        if q_tasks.qsize() > 0:
-            file_path = q_tasks.get()
-            print(file_path)
-            print(q_tasks.qsize())
-            handle_data(file_path)
-
-
-
 def main():
-    executor = ThreadPoolExecutor(1)
-    executor.submit(while_)
     active_socket_server()
-#    while True:
-#        logging.info(f"=============={q_tasks.qsize()}=============")
-#        if q_tasks.qsize() > 0:
-#            file_path = q_tasks.get()
-#            executor.submit(handle_data, (file_path))
-#            #handle_data(file_path)
 
 
 if __name__ == "__main__":

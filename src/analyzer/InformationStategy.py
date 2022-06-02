@@ -58,19 +58,12 @@ class InformationStrategy:
 
     # return: list of all private IPs from all NICs
     def get_private_ip(self):
-        private_nic_ip_addresses = []
-        for each_ip in ni.interfaces():
-            try:
-                ip = ni.ifaddresses(each_ip)[ni.AF_INET][0]['addr']
-                private_nic_ip_addresses.append(ip)
-            except:
-                pass
-        self.src_server_private_ip = private_nic_ip_addresses[1]
+        self.src_server_private_ip = os.environ.get(gethostname())
         return self.src_server_private_ip
 
     # return: TCP ping value from src_host to dst_host
     def get_latency(self, ip="127.0.0.1"):
-        return ping(ip, timeout=2, count=4).rtt_avg_ms
+        return ping(ip, timeout=2, count=2).rtt_avg_ms
 
     # return mac_addr
     def get_mac_addr(self):
