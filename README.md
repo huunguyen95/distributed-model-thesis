@@ -31,6 +31,7 @@ Storage 30
 #NETWORK
 - PING OPEN
 - INTERNAL NETWORK CONNECTION
+
 ![image](https://user-images.githubusercontent.com/22879863/171525035-2201efcb-38fd-4ca3-ae27-4279018490d4.png)
 
 
