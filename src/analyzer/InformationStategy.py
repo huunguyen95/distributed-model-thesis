@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from psutil import cpu_count, cpu_freq, cpu_percent, getloadavg
+from psutil import cpu_count, cpu_freq, cpu_percent
 from psutil import virtual_memory
 from time import sleep
 from os import system, getenv
@@ -96,7 +96,7 @@ class InformationStrategy:
                 ip=self.kafka_ip,
             )}
         # only available RAM
-        if cpu_percent() > self.cpu_th or virtual_memory()[2] > self.ram_th:
+        if system_metrics['cpu_percent'] > self.cpu_th or system_metrics['mem_used'] > self.ram_th:
             self.system_status = "NOK"
             logging.info("===========SYSTEM OVERLOAD=======")
         else:
@@ -116,7 +116,7 @@ def main():
     info = InformationStrategy(src_server=gethostname())
     while True:
         info.do_monitor_system_resource_and_publish_to_kafka()
-        sleep(0.05)
+        sleep(0.1)
 
 
 if __name__ == "__main__":
