@@ -44,6 +44,7 @@ chmod 400 [ssh_key]
 vim .env
 4. Run at ground InformationStrategy
 nohup python3 InformationStrategy.py &
-5. Run TransferStategy
+5. Run socket_server
+6. Run TransferStategy
 faust -A data_process_app worker -l info
-6. Run socket_server
+
